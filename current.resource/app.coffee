@@ -22,7 +22,27 @@ app.use cookieParser()
 app.use express.static(path.join(__dirname, "public"))
 app.use app.router
 app.get "/", routes.index
-app.get "/users", users.list
+
+# Backbone.sync tester ->
+## about model
+app.post "/foo", routes.foo_post
+app.put "/foo/:id", routes.foo_put
+app.get "/foo/:id", routes.foo_get
+app.delete "/foo/:id", routes.foo_delete
+
+
+# about collection
+app.get "/foo2", routes.foo2_get_all
+app.get "/foo2/:id", routes.foo2_get
+# Model に urlRootがあった場合の優先が起きる
+# app.get "/foo/:id", routes.foo_get_super
+app.post "/foo2", routes.foo2_post
+app.put "/foo2/:id", routes.foo2_put
+app.delete "/foo2/:id", routes.foo2_delete
+
+
+
+##### <- tester end
 
 #/ catch 404 and forwarding to error handler
 app.use (req, res, next) ->

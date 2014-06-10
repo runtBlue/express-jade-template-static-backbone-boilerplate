@@ -45,7 +45,23 @@
 
   app.get("/", routes.index);
 
-  app.get("/users", users.list);
+  app.post("/foo", routes.foo_post);
+
+  app.put("/foo/:id", routes.foo_put);
+
+  app.get("/foo/:id", routes.foo_get);
+
+  app["delete"]("/foo/:id", routes.foo_delete);
+
+  app.get("/foo2", routes.foo2_get_all);
+
+  app.get("/foo2/:id", routes.foo2_get);
+
+  app.post("/foo2", routes.foo2_post);
+
+  app.put("/foo2/:id", routes.foo2_put);
+
+  app["delete"]("/foo2/:id", routes.foo2_delete);
 
   app.use(function(req, res, next) {
     var err;
