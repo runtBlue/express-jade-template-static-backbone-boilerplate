@@ -1,24 +1,35 @@
 主なフォルダ構成
 ================
 設定
-Gruntfile.coffee
-package.json
+
++ Gruntfile.coffee
++ package.json
+
 資源
-current.resource
-public.resource
+
++ current.resource
++ public.resource
+
 サーバー
-views
-bin
-routes
-node_modules
+
++ views
++ bin
++ routes
++ node_modules
+
 静的公開
-public
+
++ public
+
 サーバー起点
-Procfile
+
++ Procfile
+
 サーバーロジック
-settings.js
-database.js
-app.js
+
++ settings.js
++ database.js
++ app.js
 
 設定
 --------
@@ -27,14 +38,18 @@ gruntに激しく依存するテンプレートです。テストありません
 
 資源
 ---------
-current.resrouce はサーバー側の場所の元資源としてpublic以外のcoffeescript を配っていく。
++ current.resrouce サーバー側の場所の元資源としてpublic以外のcoffeescript を配っていく。
++ public.resrouces
+
+public配下の資源、現状jadeとcoffee
 
 サーバーロジック
 -----------
 このjsはcurrent.resroucesから生成されたもの。
-settings.js: 設定系
-database.js: herokuにあげるときにmongoDBのURLとかを書くつもりで分離した設定
-app.js: サーバーメインロジック
+
++ settings.js: 設定系
++ database.js: herokuにあげるときにmongoDBのURLとかを書くつもりで分離した設定
++ app.js: サーバーメインロジック
 
 静的公開
 ---------
