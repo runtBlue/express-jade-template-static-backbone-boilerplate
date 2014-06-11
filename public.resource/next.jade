@@ -1,0 +1,16 @@
+extends partials/layout-index.jade
+block content
+	canvas#main-canvas(
+		width = 400
+		height = 400
+		style = "border: 1px solid #dde0ee;"
+	)
+	h1 Canvas game programing
+	script
+		:coffee
+			canvas = document.getElementById 'main-canvas'
+			if not canvas or not canvas.getContext
+				return false
+			c = canvas.getContext '2d'
+			w = c.canvas.width
+			h = c.canvas.height

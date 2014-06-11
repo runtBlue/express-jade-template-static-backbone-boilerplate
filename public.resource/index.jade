@@ -1,4 +1,194 @@
-html
-	head
-	body
-		p hello
+extends partials/layout-index.jade
+block content
+	canvas#main-canvas(
+		width = 400
+		height = 400
+		style = "border: 1px solid #dde0ee;"
+	)
+	h1 Canvas game programing
+	script
+		:coffee
+			canvas = document.getElementById 'main-canvas'
+			if not canvas or not canvas.getContext
+				return false
+			c = canvas.getContext '2d'
+			w = c.canvas.width
+			h = c.canvas.height
+			score = 0
+			settings =
+				initialSize: 20
+				initialMaxDxy: 4
+				initialMaxDa: 8
+				initialNumberOfEnemies: 7
+				timeStep: 50
+			timerId = {}
+			enemies = []
+			mouse =
+				x: 0
+				y: 0
+			baseAngle = 0
+			gameOver = false
+			isMousedown = false
+			############ 初期値 ##############
+			c.canvas.onmousemove = (e) ->
+				mouse.x = e.clientX
+				mouse.y = e.clientY
+			showMousePointer = () ->
+				c.strokeText "x: " + mouse.x + " y: " + mouse.y + " score: " + score, 30, 30
+			c.canvas.onmousedown = () ->
+				isMousedown = true
+			c.canvas.onmouseup = () ->
+				isMousedown = false
+			c.canvas.onmouseout = () ->
+				isMousedown = false
+			drawLine_BaseToMouse = () ->
+				if isMousedown
+					c.save()
+					c.beginPath()
+					c.moveTo w / 2, h / 2
+					c.lineTo mouse.x, mouse.y
+					c.stroke()
+					c.restore()
+			endGame = () ->
+				c.save()
+				c.font = "48px sans-serif"
+				c.textAlign = "center"
+				c.fillStyle = "red"
+				c.textBaseline = "middle"
+				c.fillText "GAME OVER", w / 2, h / 2
+				c.restore()
+			############# マウス ############
+			Enemy = class
+				constructor: () ->
+					@maxDxy = settings.initialMaxDxy
+					@maxDa = settings.initialMaxDa
+					@initSize = settings.initialSize
+					@rect = {}
+					@rect.size = settings.initialSize
+					@init()
+				init: () ->
+					s = @rect.size
+					@rect.dx = @maxDxy * (Math.random() - 0.5)
+					@rect.dy = @maxDxy * (Math.random() - 0.5)
+					@rect.da = @maxDa * (Math.random() - 0.5)
+					@rect.a = Math.PI * Math.random() * 360 / 180
+					if Math.random() < 0.5
+						if Math.random() < 0.5
+							@rect.x = s
+						else
+							@rect.x = w - s
+						@rect.y = Math.random() * (h - 2 * s) + s
+					else
+						if Math.random() < 0.5
+							@rect.y = s
+						else
+							@rect.y = h - s
+						@rect.x = Math.random() * (w - 2 * s) + s
+				rebirth: () ->
+					@initSize += 5
+					@maxDxy += 1
+					@maxDa += 1
+					@rect.size = @initSize
+					@init()
+				judgeSmall: () ->
+					s = @rect.size
+					diffX = mouse.x - @rect.x
+					diffY = mouse.y - @rect.y
+					distance = Math.sqrt diffX * diffX + diffY * diffY
+					if distance < s / 2 or distance < 10
+						@rect.size += -3
+						score += 100
+						if @rect.size > 14
+							e = new Enemy()
+							e.rect.x = @rect.x + e.rect.dx * 5
+							e.rect.y = @rect.y + e.rect.dy * 5
+							e.rect.size = 6
+							e.reallyDie = true
+							enemies.push e
+				judgeBounce: () ->
+					s = @rect.size
+					x = @rect.x
+					y = @rect.y
+					dx = @rect.dx
+					dy = @rect.dy
+					if x + dx < s / 2 or w - s / 2 < x + dx
+						@rect.dx = -@rect.dx
+						@rect.da = -@rect.da
+					if y + dy < s / 2 or h - s / 2 < y + dy
+						@rect.dy = -@rect.dy
+						@rect.da = -@rect.da
+
+				move: () ->
+					s = @rect.size
+					if s <= 0
+						if @reallyDie
+							return
+						@rebirth()
+					if isMousedown
+						@judgeSmall()
+					if @rect.size <= 0
+						return
+					@judgeBounce()
+					@rect.a += @rect.da
+					@rect.x += @rect.dx
+					@rect.y += @rect.dy
+				draw: () ->
+					s = @rect.size
+					a = @rect.a
+					x = @rect.x
+					y = @rect.y
+					c.save()
+					c.translate x, y
+					c.rotate Math.PI * a / 180
+					c.strokeRect -s / 2, -s / 2, s, s
+					c.restore()
+			Base = class
+				constructor: () ->
+					@size = 20
+				isHitBy: (enemy) ->
+					x = w / 2 - enemy.rect.x
+					y = h / 2 - enemy.rect.y
+					distance = Math.sqrt x * x + y * y
+					if distance < @size / 2 + enemy.rect.size / 2
+						true
+					else
+						false
+				draw: () ->
+					s = @size
+					c.save()
+					c.translate w / 2, h / 2
+					c.rotate Math.PI * baseAngle / 180
+					c.strokeRect -s / 2, -s / 2, s, s
+					c.rotate Math.PI * 30 / 180
+					c.strokeRect -s / 2, -s / 2, s, s
+					c.rotate Math.PI * 30 / 180
+					c.strokeRect -s / 2, -s / 2, s, s
+					c.restore()
+					baseAngle += 3
+			base = new Base()
+			for i in [0...settings.initialNumberOfEnemies]
+				e = new Enemy()
+				enemies.push e
+			updateAll = () ->
+					if gameOver
+						endGame()
+					else
+						for i in [(enemies.length - 1)..0]
+							enemies[i].move()
+							if enemies[i].rect.size <= 0 and enemies.reallyDie
+								enemies.splice(i, 1)
+							if base.isHitBy enemies[i]
+								gameOver = true
+						c.clearRect 0, 0, w, h
+						for i in [0...enemies.length]
+							enemies[i].draw()
+						base.draw()
+						if isMousedown
+							score -= 30
+						showMousePointer()
+						drawLine_BaseToMouse()
+						clearTimeout timerId
+						timerId = setTimeout updateAll, settings.timeStep
+			updateAll()
+
+

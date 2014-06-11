@@ -1,7 +1,298 @@
-
+<!DOCTYPE html>
 <html>
-  <head></head>
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>How to build single page application with Backbone.js</title>
+    <link media="screen" rel="stylesheet" href="stylesheets/bootstrap.css">
+    <!-- link(media='screen' rel="stylesheet" href="stylesheets/style.css")-->
+  </head>
   <body>
-    <p>hello</p>
+    <canvas id="main-canvas" width="400" height="400" style="border: 1px solid #dde0ee;"></canvas>
+    <h1>Canvas game programing</h1>
+    <script>(function() {
+  var Base, Enemy, base, baseAngle, c, canvas, drawLine_BaseToMouse, e, endGame, enemies, gameOver, h, i, isMousedown, mouse, score, settings, showMousePointer, timerId, updateAll, w, _i, _ref;
+
+  canvas = document.getElementById('main-canvas');
+
+  if (!canvas || !canvas.getContext) {
+    return false;
+  }
+
+  c = canvas.getContext('2d');
+
+  w = c.canvas.width;
+
+  h = c.canvas.height;
+
+  score = 0;
+
+  settings = {
+    initialSize: 20,
+    initialMaxDxy: 4,
+    initialMaxDa: 8,
+    initialNumberOfEnemies: 7,
+    timeStep: 50
+  };
+
+  timerId = {};
+
+  enemies = [];
+
+  mouse = {
+    x: 0,
+    y: 0
+  };
+
+  baseAngle = 0;
+
+  gameOver = false;
+
+  isMousedown = false;
+
+  c.canvas.onmousemove = function(e) {
+    mouse.x = e.clientX;
+    return mouse.y = e.clientY;
+  };
+
+  showMousePointer = function() {
+    return c.strokeText("x: " + mouse.x + " y: " + mouse.y + " score: " + score, 30, 30);
+  };
+
+  c.canvas.onmousedown = function() {
+    return isMousedown = true;
+  };
+
+  c.canvas.onmouseup = function() {
+    return isMousedown = false;
+  };
+
+  c.canvas.onmouseout = function() {
+    return isMousedown = false;
+  };
+
+  drawLine_BaseToMouse = function() {
+    if (isMousedown) {
+      c.save();
+      c.beginPath();
+      c.moveTo(w / 2, h / 2);
+      c.lineTo(mouse.x, mouse.y);
+      c.stroke();
+      return c.restore();
+    }
+  };
+
+  endGame = function() {
+    c.save();
+    c.font = "48px sans-serif";
+    c.textAlign = "center";
+    c.fillStyle = "red";
+    c.textBaseline = "middle";
+    c.fillText("GAME OVER", w / 2, h / 2);
+    return c.restore();
+  };
+
+  Enemy = (function() {
+    function _Class() {
+      this.maxDxy = settings.initialMaxDxy;
+      this.maxDa = settings.initialMaxDa;
+      this.initSize = settings.initialSize;
+      this.rect = {};
+      this.rect.size = settings.initialSize;
+      this.init();
+    }
+
+    _Class.prototype.init = function() {
+      var s;
+      s = this.rect.size;
+      this.rect.dx = this.maxDxy * (Math.random() - 0.5);
+      this.rect.dy = this.maxDxy * (Math.random() - 0.5);
+      this.rect.da = this.maxDa * (Math.random() - 0.5);
+      this.rect.a = Math.PI * Math.random() * 360 / 180;
+      if (Math.random() < 0.5) {
+        if (Math.random() < 0.5) {
+          this.rect.x = s;
+        } else {
+          this.rect.x = w - s;
+        }
+        return this.rect.y = Math.random() * (h - 2 * s) + s;
+      } else {
+        if (Math.random() < 0.5) {
+          this.rect.y = s;
+        } else {
+          this.rect.y = h - s;
+        }
+        return this.rect.x = Math.random() * (w - 2 * s) + s;
+      }
+    };
+
+    _Class.prototype.rebirth = function() {
+      this.initSize += 5;
+      this.maxDxy += 1;
+      this.maxDa += 1;
+      this.rect.size = this.initSize;
+      return this.init();
+    };
+
+    _Class.prototype.judgeSmall = function() {
+      var diffX, diffY, distance, e, s;
+      s = this.rect.size;
+      diffX = mouse.x - this.rect.x;
+      diffY = mouse.y - this.rect.y;
+      distance = Math.sqrt(diffX * diffX + diffY * diffY);
+      if (distance < s / 2 || distance < 10) {
+        this.rect.size += -3;
+        score += 100;
+        if (this.rect.size > 14) {
+          e = new Enemy();
+          e.rect.x = this.rect.x + e.rect.dx * 5;
+          e.rect.y = this.rect.y + e.rect.dy * 5;
+          e.rect.size = 6;
+          e.reallyDie = true;
+          return enemies.push(e);
+        }
+      }
+    };
+
+    _Class.prototype.judgeBounce = function() {
+      var dx, dy, s, x, y;
+      s = this.rect.size;
+      x = this.rect.x;
+      y = this.rect.y;
+      dx = this.rect.dx;
+      dy = this.rect.dy;
+      if (x + dx < s / 2 || w - s / 2 < x + dx) {
+        this.rect.dx = -this.rect.dx;
+        this.rect.da = -this.rect.da;
+      }
+      if (y + dy < s / 2 || h - s / 2 < y + dy) {
+        this.rect.dy = -this.rect.dy;
+        return this.rect.da = -this.rect.da;
+      }
+    };
+
+    _Class.prototype.move = function() {
+      var s;
+      s = this.rect.size;
+      if (s <= 0) {
+        if (this.reallyDie) {
+          return;
+        }
+        this.rebirth();
+      }
+      if (isMousedown) {
+        this.judgeSmall();
+      }
+      if (this.rect.size <= 0) {
+        return;
+      }
+      this.judgeBounce();
+      this.rect.a += this.rect.da;
+      this.rect.x += this.rect.dx;
+      return this.rect.y += this.rect.dy;
+    };
+
+    _Class.prototype.draw = function() {
+      var a, s, x, y;
+      s = this.rect.size;
+      a = this.rect.a;
+      x = this.rect.x;
+      y = this.rect.y;
+      c.save();
+      c.translate(x, y);
+      c.rotate(Math.PI * a / 180);
+      c.strokeRect(-s / 2, -s / 2, s, s);
+      return c.restore();
+    };
+
+    return _Class;
+
+  })();
+
+  Base = (function() {
+    function _Class() {
+      this.size = 20;
+    }
+
+    _Class.prototype.isHitBy = function(enemy) {
+      var distance, x, y;
+      x = w / 2 - enemy.rect.x;
+      y = h / 2 - enemy.rect.y;
+      distance = Math.sqrt(x * x + y * y);
+      if (distance < this.size / 2 + enemy.rect.size / 2) {
+        return true;
+      } else {
+        return false;
+      }
+    };
+
+    _Class.prototype.draw = function() {
+      var s;
+      s = this.size;
+      c.save();
+      c.translate(w / 2, h / 2);
+      c.rotate(Math.PI * baseAngle / 180);
+      c.strokeRect(-s / 2, -s / 2, s, s);
+      c.rotate(Math.PI * 30 / 180);
+      c.strokeRect(-s / 2, -s / 2, s, s);
+      c.rotate(Math.PI * 30 / 180);
+      c.strokeRect(-s / 2, -s / 2, s, s);
+      c.restore();
+      return baseAngle += 3;
+    };
+
+    return _Class;
+
+  })();
+
+  base = new Base();
+
+  for (i = _i = 0, _ref = settings.initialNumberOfEnemies; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+    e = new Enemy();
+    enemies.push(e);
+  }
+
+  updateAll = function() {
+    var _j, _k, _ref1, _ref2;
+    if (gameOver) {
+      return endGame();
+    } else {
+      for (i = _j = _ref1 = enemies.length - 1; _ref1 <= 0 ? _j <= 0 : _j >= 0; i = _ref1 <= 0 ? ++_j : --_j) {
+        enemies[i].move();
+        if (enemies[i].rect.size <= 0 && enemies.reallyDie) {
+          enemies.splice(i, 1);
+        }
+        if (base.isHitBy(enemies[i])) {
+          gameOver = true;
+        }
+      }
+      c.clearRect(0, 0, w, h);
+      for (i = _k = 0, _ref2 = enemies.length; 0 <= _ref2 ? _k < _ref2 : _k > _ref2; i = 0 <= _ref2 ? ++_k : --_k) {
+        enemies[i].draw();
+      }
+      base.draw();
+      if (isMousedown) {
+        score -= 30;
+      }
+      showMousePointer();
+      drawLine_BaseToMouse();
+      clearTimeout(timerId);
+      return timerId = setTimeout(updateAll, settings.timeStep);
+    }
+  };
+
+  updateAll();
+
+}).call(this);
+
+    </script>
+    <script src="javascripts/libs/jquery.js"></script>
+    <script src="javascripts/libs/underscore.js"></script>
+    <script src="javascripts/libs/backbone.js"></script>
+    <script src="javascripts/libs/bootstrap.js"></script>
+    <script src="javascripts/libs/backbone.localStorage.js"></script>
+    <script src="javascripts/jst-template-jade.js"></script>
+    <script src="javascripts/main.js"></script>
   </body>
 </html>
